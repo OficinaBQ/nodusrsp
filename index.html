@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NODUS RSP · Retirement Scenario Planning</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B2A5E;--navy2:#142047;--navy3:#243478;
+  --navy-lt:#E8EDF8;--navy-md:#C2CEEC;
+  --bg:#F4F6FB;--surface:#FFFFFF;--surface2:#F0F3FA;
+  --border:#D1D9EF;--border2:#B8C4E0;
+  --text:#0F1C3F;--text2:#3D4E7A;--text3:#7A8DB8;
+  --green-dark:#1D6B38;--green-light:#2E8B4A;
+  --green-hover:#155227;--green-l-hover:#237840;
+  --purple:#5C3299;--amber:#B45309;--red:#9B1C1C;
+  --teal:#0F5E55;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;line-height:1.5}
+
+/* ── HEADER ── */
+header{
+  padding:0 32px;height:60px;background:var(--navy);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(27,42,94,.18);
+}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-mark{
+  width:36px;height:36px;border-radius:8px;
+  background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:600;color:#fff;
+}
+.logo-text{font-size:15px;font-weight:600;color:#fff;letter-spacing:.01em}
+.logo-firm{font-size:11px;color:rgba(255,255,255,.55);margin-left:2px;font-weight:400}
+.version-tag{
+  font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.5);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  padding:3px 10px;border-radius:20px;letter-spacing:.04em;
+}
+
+/* ── NAV TABS ── */
+.nav-tabs{
+  background:var(--navy2);display:flex;padding:0 32px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.nav-tab{
+  padding:12px 20px;font-size:11px;font-weight:500;letter-spacing:.08em;
+  color:rgba(255,255,255,.4);cursor:pointer;border-bottom:2px solid transparent;
+  text-transform:uppercase;transition:all .18s;user-select:none;
+}
+.nav-tab:hover{color:rgba(255,255,255,.7)}
+.nav-tab.active{color:#fff;border-bottom-color:rgba(255,255,255,.7)}
+.nav-tab.locked{cursor:not-allowed;opacity:.3}
+
+/* ── MAIN ── */
+main{flex:1;padding:32px;max-width:1020px;margin:0 auto;width:100%}
+
+.section-label{
+  font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:8px;
+}
+.page-title{font-size:22px;font-weight:300;margin-bottom:5px;letter-spacing:-.02em;color:var(--text)}
+.page-title strong{color:var(--navy);font-weight:600}
+.page-desc{font-size:12px;color:var(--text3);margin-bottom:28px;line-height:1.6}
+.title-bar{width:40px;height:3px;background:var(--navy);border-radius:2px;margin-bottom:20px}
+
+/* ── LAYOUT GRIDS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.four-col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+
+/* ── CARD ── */
+.card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:10px;padding:22px;margin-bottom:16px;
+}
+.card-label{
+  font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+.card-label::before{content:'';width:14px;height:2px;background:var(--navy);border-radius:1px}
+
+/* ── FIELDS ── */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{
+  font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);
+}
+.field input,.field select{
+  background:var(--surface);border:1.5px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:9px 11px;border-radius:7px;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.field input:focus,.field select:focus{
+  border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,94,.1);
+}
+.field input::placeholder{color:var(--text3)}
+.field input.autodetected{
+  color:var(--navy);font-weight:600;border-color:var(--navy-md);background:var(--navy-lt);
+}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ── TOGGLE ── */
+.toggle-group{display:flex;gap:6px}
+.toggle-btn{
+  flex:1;padding:8px 10px;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--text3);border-radius:7px;
+  cursor:pointer;font-size:12px;font-family:var(--sans);
+  transition:all .15s;font-weight:500;
+}
+.toggle-btn.active{
+  background:var(--navy-lt);border-color:var(--navy);color:var(--navy);font-weight:600;
+}
+
+/* ── OCR DROP ── */
+.ocr-drop{
+  border:1.5px dashed var(--border2);border-radius:10px;
+  padding:28px 20px;text-align:center;cursor:pointer;
+  transition:all .2s;background:var(--surface);position:relative;overflow:hidden;
+}
+.ocr-drop::after{
+  content:'';position:absolute;inset:0;
+  background:var(--navy-lt);opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.ocr-drop:hover{border-color:var(--navy);border-style:solid}
+.ocr-drop:hover::after{opacity:1}
+.ocr-drop.loaded{border-style:solid;border-color:var(--navy)}
+.ocr-drop-icon{font-size:26px;margin-bottom:8px;display:block;color:var(--border2);transition:color .2s}
+.ocr-drop.loaded .ocr-drop-icon{color:var(--navy)}
+.ocr-drop-label{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);margin-bottom:4px}
+.ocr-drop-hint{font-size:11px;color:var(--text3);line-height:1.6;pointer-events:none}
+.ocr-drop-count{font-family:var(--mono);font-size:11px;margin-top:8px;color:var(--text3)}
+.ocr-drop.loaded .ocr-drop-count{color:var(--navy);font-weight:600}
+
+/* ── PROGRESS ── */
+.prog-wrap{margin-bottom:14px;display:none}
+.prog-wrap.show{display:block}
+.prog-label{font-size:10px;color:var(--text3);margin-bottom:6px;font-family:var(--mono)}
+.prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--navy) 0%,#4B6CD4 50%,var(--navy) 100%);
+  background-size:200% 100%;border-radius:2px;transition:width .3s;width:0%;
+  animation:shimmer 1.5s infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── LOG ── */
+.log{
+  display:none;background:var(--navy);border-radius:8px;
+  padding:12px 14px;font-family:var(--mono);font-size:11px;
+  min-height:60px;max-height:130px;overflow-y:auto;margin-bottom:16px;
+}
+.log.show{display:block}
+.ll{padding:1px 0;line-height:1.7}
+.ll.ok{color:#4ADE80}.ll.info{color:rgba(255,255,255,.4)}
+.ll.err{color:#F87171}.ll.warn{color:#FCD34D}
+
+/* ── STATS METRICS ── */
+.stats-grid{display:none;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px}
+.stats-grid.show{display:grid}
+.stat-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:8px;padding:12px 14px;border-top:3px solid var(--navy);
+}
+.stat-card.green{border-top-color:var(--green-dark)}
+.stat-card.purple{border-top-color:var(--purple)}
+.stat-card.amber{border-top-color:var(--amber)}
+.stat-card.red{border-top-color:var(--red)}
+.stat-card.teal{border-top-color:var(--teal)}
+.stat-lbl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--navy);line-height:1}
+.stat-card.green .stat-val{color:var(--green-dark)}
+.stat-card.purple .stat-val{color:var(--purple)}
+.stat-card.amber .stat-val{color:var(--amber)}
+.stat-card.red .stat-val{color:var(--red)}
+.stat-card.teal .stat-val{color:var(--teal)}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+
+/* ── ESCENARIOS ── */
+.escenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.escenario-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:10px;padding:18px;position:relative;
+  transition:border-color .18s,box-shadow .18s;cursor:default;
+}
+.escenario-card.recommended{border-color:var(--navy);border-width:2px}
+.escenario-card.recommended::before{
+  content:'RECOMENDADO';position:absolute;top:-1px;left:16px;
+  font-size:9px;font-weight:600;letter-spacing:.1em;
+  background:var(--navy);color:#fff;padding:3px 10px;
+  border-radius:0 0 6px 6px;
+}
+.esc-num{font-size:9px;font-weight:600;letter-spacing:.12em;color:var(--text3);margin-bottom:6px;text-transform:uppercase}
+.esc-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+.esc-pension{font-size:26px;font-weight:300;color:var(--navy);letter-spacing:-.02em;line-height:1}
+.esc-pension-label{font-size:10px;color:var(--text3);margin-bottom:10px;margin-top:2px}
+.esc-detail{font-size:11px;color:var(--text3);line-height:1.8;font-family:var(--mono)}
+.esc-detail span{color:var(--text2)}
+
+/* ── DESGLOSE TABLE ── */
+.desglose-table{width:100%;border-collapse:collapse}
+.desglose-table th{
+  text-align:left;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text3);padding:8px 10px;border-bottom:1.5px solid var(--border);
+}
+.desglose-table td{
+  padding:10px 10px;font-size:12px;color:var(--text);
+  border-bottom:1px solid var(--border);
+}
+.desglose-table tr:last-child td{border-bottom:none}
+.desglose-table .val{font-family:var(--mono);text-align:right;color:var(--navy);font-weight:600}
+.desglose-table .val.neg{color:var(--red)}
+.desglose-table .total-row td{
+  font-size:13px;font-weight:600;color:var(--navy);
+  border-top:1.5px solid var(--navy);border-bottom:none;padding-top:12px;
+}
+
+/* ── CHARTS ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px}
+.chart-title{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--text2);margin-bottom:14px;text-transform:uppercase}
+
+/* ── ANALISIS BOX ── */
+.analisis-box{
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:10px;padding:20px;margin-bottom:20px;
+  border-left:4px solid var(--navy);
+}
+.analisis-box p{font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:10px}
+.analisis-box p:last-child{margin-bottom:0}
+.analisis-box strong{color:var(--navy);font-weight:600}
+.notice{
+  border-radius:8px;padding:10px 14px;margin-top:10px;
+  font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:8px;
+}
+.notice.warn{background:#FFFBEB;border:1px solid #FCD34D}
+.notice.ok{background:#F0FDF4;border:1px solid #86EFAC}
+.notice-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+
+/* ── PERIODOS TABLE ── */
+.periodo-row{
+  display:grid;grid-template-columns:80px 1fr 80px 36px;
+  gap:8px;align-items:end;margin-bottom:8px;
+}
+.periodo-row .field{margin-bottom:0}
+.btn-icon{
+  padding:9px;background:transparent;border:1.5px solid var(--border);
+  border-radius:7px;cursor:pointer;color:var(--text3);font-size:13px;
+  transition:all .15s;
+}
+.btn-icon:hover{background:#FEF2F2;border-color:#FCA5A5;color:var(--red)}
+
+/* ── REPORTE ── */
+.reporte-wrap{
+  background:#fff;border:1.5px solid var(--border);border-radius:10px;
+  padding:48px;max-width:800px;margin:0 auto;font-family:var(--sans);
+  box-shadow:0 4px 24px rgba(27,42,94,.08);
+}
+.rep-header{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding-bottom:20px;border-bottom:2px solid var(--navy);margin-bottom:24px;
+}
+.rep-logo{font-size:18px;font-weight:600;color:var(--navy);font-family:var(--mono)}
+.rep-logo-sub{font-size:9px;color:var(--text3);letter-spacing:.1em;margin-top:3px;text-transform:uppercase}
+.rep-fecha{font-size:11px;color:var(--text3);text-align:right;font-family:var(--mono)}
+.rep-nombre{font-size:24px;font-weight:300;color:var(--text);margin-bottom:4px}
+.rep-sub{font-size:12px;color:var(--text3);margin-bottom:24px}
+.rep-section{margin-bottom:24px}
+.rep-section-title{
+  font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--navy);margin-bottom:12px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.rep-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.rep-metric{background:#F4F6FB;border-radius:7px;padding:12px}
+.rep-metric-label{font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--text3);margin-bottom:5px;text-transform:uppercase}
+.rep-metric-value{font-size:18px;color:var(--navy);font-family:var(--mono);font-weight:600}
+.rep-row{display:flex;justify-content:space-between;border-bottom:1px solid #EEF0F8;padding:7px 0;font-size:12px}
+.rep-row:last-child{border-bottom:none}
+.rep-row-label{color:var(--text3)}
+.rep-row-value{color:var(--text);font-family:var(--mono);font-weight:500}
+.rep-esc{border:1.5px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+.rep-esc.rec{border-color:var(--navy);background:#F4F6FB}
+.rep-esc-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.rep-esc-pension{font-size:20px;color:var(--navy);font-family:var(--mono)}
+.rep-esc-desc{font-size:11px;color:var(--text3);margin-top:4px}
+.rep-footer{border-top:1px solid var(--border);padding-top:16px;font-size:10px;color:var(--text3);display:flex;justify-content:space-between}
+
+/* ── BUTTONS ── */
+.btn-row{display:grid;grid-template-columns:3fr 1fr;gap:12px;margin-top:8px}
+.btn-row-equal{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.btn{
+  border:none;font-family:var(--sans);font-size:12px;font-weight:600;
+  letter-spacing:.05em;padding:12px 20px;border-radius:8px;
+  cursor:pointer;transition:all .18s;text-transform:uppercase;width:100%;
+  position:relative;overflow:hidden;
+}
+.btn-primary{background:var(--green-dark);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--green-hover);transform:translateY(-1px);box-shadow:0 4px 14px rgba(29,107,56,.3)}
+.btn-primary:active:not(:disabled){transform:translateY(0)}
+.btn-primary:disabled{background:#94A3B8;cursor:not-allowed;color:#e2e8f0}
+.btn-primary .btn-progress{
+  position:absolute;left:0;top:0;height:100%;width:0%;
+  background:rgba(255,255,255,.12);transition:width .3s;pointer-events:none;
+}
+.btn-secondary{background:var(--green-light);color:#fff}
+.btn-secondary:hover:not(:disabled){background:var(--green-l-hover);transform:translateY(-1px);box-shadow:0 4px 14px rgba(46,139,74,.25)}
+.btn-secondary:disabled{background:#94A3B8;cursor:not-allowed;opacity:.6}
+.btn-outline{
+  background:transparent;border:1.5px solid var(--border2);color:var(--text2);
+  font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.04em;
+  padding:10px 18px;border-radius:8px;cursor:pointer;transition:all .15s;text-transform:uppercase;
+}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy);background:var(--navy-lt)}
+
+/* ── INFO BOX ── */
+.info-box{
+  background:var(--navy-lt);border:1px solid var(--navy-md);
+  border-radius:7px;padding:10px 13px;margin-bottom:14px;
+  font-size:11px;color:var(--text2);font-family:var(--mono);line-height:1.7;
+}
+
+/* ── FOOTER ── */
+footer{
+  padding:12px 32px;border-top:1px solid var(--border);
+  font-size:10px;color:var(--text3);
+  display:flex;justify-content:space-between;
+  background:var(--surface);font-family:var(--mono);
+}
+.footer-brand{color:var(--navy);font-weight:600}
+
+/* ── PANEL VISIBILITY ── */
+.panel{display:none}.panel.active{display:block}
+
+/* ── UTILITY ── */
+input[type=file]{display:none}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2)}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .4s ease,transform .4s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:800px){
+  .two-col,.three-col,.four-col,.field-row,.field-row-3{grid-template-columns:1fr}
+  .escenario-grid,.chart-grid,.stats-grid{grid-template-columns:1fr 1fr}
+  .btn-row{grid-template-columns:1fr}
+  main{padding:20px}
+  header{padding:0 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">B&amp;Q</div>
+    <span class="logo-text">Barajas &amp; Quiñonez</span>
+    <span class="logo-firm">· Servicios Contables</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="version-tag">NODUS RSP · Retirement Scenario Planning</span>
+  </div>
+</header>
+
+<!-- ── NAV TABS ── -->
+<div class="nav-tabs">
+  <div class="nav-tab active" data-tab="ingreso">01 · Datos del asegurado</div>
+  <div class="nav-tab locked" data-tab="calculo" id="tabCalculo">02 · Escenarios</div>
+  <div class="nav-tab locked" data-tab="reporte" id="tabReporte">03 · Reporte</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PANEL 1 ═══ -->
+<main>
+<div class="panel active" id="panelIngreso">
+
+  <div class="section-label">Módulo activo</div>
+  <h1 class="page-title">Análisis de <strong>Escenarios de Retiro</strong> IMSS</h1>
+  <div class="title-bar"></div>
+  <p class="page-desc">Ingresa los datos del asegurado o carga un documento del IMSS/AFORE. El sistema calcula la pensión bajo Ley 1973, proyecta escenarios y genera el reporte ejecutivo.</p>
+
+  <div class="two-col">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+      <div class="card reveal">
+        <div class="card-label">Datos personales</div>
+        <div class="field">
+          <label>Nombre completo</label>
+          <input type="text" id="nombre" placeholder="Apellido Apellido, Nombre">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>NSS</label>
+            <input type="text" id="nss" placeholder="00 00 00 0000 0">
+          </div>
+          <div class="field">
+            <label>CURP</label>
+            <input type="text" id="curp" placeholder="XXXX000000XXXXXX00" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Fecha de nacimiento</label>
+            <input type="date" id="fechaNac">
+          </div>
+          <div class="field">
+            <label>Fecha de retiro deseada</label>
+            <input type="date" id="fechaRetiro">
+          </div>
+        </div>
+        <div class="field">
+          <label>Régimen aplicable</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-ley="73">Ley 1973</button>
+            <button class="toggle-btn" data-ley="97">Ley 1997 / AFORE</button>
+            <button class="toggle-btn" data-ley="dual">Evaluar ambas</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-label">Semanas y salario</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Semanas cotizadas</label>
+            <input type="number" id="semanas" placeholder="1212" min="0">
+          </div>
+          <div class="field">
+            <label>Semanas por recuperar</label>
+            <input type="number" id="semanasRec" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Semanas por aclarar</label>
+            <input type="number" id="semanasAcl" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>Edad de retiro (años)</label>
+            <input type="number" id="edadRetiro" placeholder="60" min="60" max="65">
+          </div>
+        </div>
+        <div class="field">
+          <label>SDI promedio · últimas 250 semanas (MXN/día)</label>
+          <input type="number" id="sdi" placeholder="2281" min="0">
+        </div>
+        <div class="info-box">
+          UMA 2025: $108.57/día &nbsp;·&nbsp; Sal. mínimo 2025: $278.80/día &nbsp;·&nbsp; Tope IMSS: 25 UMA = $2,714.25/día
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-label">Asignaciones familiares</div>
+        <div class="field-row">
+          <div class="field">
+            <label>¿Cónyuge / concubina(o)?</label>
+            <div class="toggle-group">
+              <button class="toggle-btn active" data-fam="conyuge" data-val="si">Sí</button>
+              <button class="toggle-btn" data-fam="conyuge" data-val="no">No</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hijos (≤16 o estudiantes ≤25)</label>
+            <input type="number" id="hijos" placeholder="0" min="0" max="10">
+          </div>
+        </div>
+        <div class="field">
+          <label>Padres dependientes (sin cónyuge/hijos)</label>
+          <input type="number" id="padres" placeholder="0" min="0" max="2">
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-label">Modalidad 40</div>
+        <div class="field">
+          <label>¿Incluir escenario Mod. 40?</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-mod40="si">Sí, proyectar</button>
+            <button class="toggle-btn" data-mod40="no">No</button>
+          </div>
+        </div>
+        <div id="mod40Fields">
+          <div class="field-row">
+            <div class="field">
+              <label>SDI Mod. 40 propuesto (MXN/día)</label>
+              <input type="number" id="sdiMod40" placeholder="2714" min="0">
+            </div>
+            <div class="field">
+              <label>Años a cotizar en Mod. 40</label>
+              <input type="number" id="anyosMod40" placeholder="3" min="1" max="10">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-label">Parámetros actuariales</div>
+        <div class="field-row">
+          <div class="field">
+            <label>UMA vigente (MXN/día)</label>
+            <input type="number" id="uma" value="108.57" step="0.01">
+          </div>
+          <div class="field">
+            <label>Salario mínimo (MXN/día)</label>
+            <input type="number" id="salMin" value="278.80" step="0.01">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Esperanza de vida (años)</label>
+            <input type="number" id="esperanza" value="80" min="65" max="100">
+          </div>
+          <div class="field">
+            <label>Inflación anual estimada (%)</label>
+            <input type="number" id="inflacion" value="4.5" step="0.1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA -->
+    <div>
+      <div class="card reveal">
+        <div class="card-label">Lectura OCR de documentos IMSS / AFORE</div>
+        <div class="ocr-drop" id="ocrDrop" onclick="document.getElementById('ocrFile').click()">
+          <span class="ocr-drop-icon">⊕</span>
+          <div class="ocr-drop-label">Cargar documento</div>
+          <div class="ocr-drop-hint">Estado de cuenta · Reporte de semanas · Constancia SDI<br>PNG · JPG · PDF (imagen)</div>
+          <div class="ocr-drop-count" id="ocrCount">— sin archivos —</div>
+        </div>
+        <input type="file" id="ocrFile" accept="image/*">
+        <div class="prog-wrap" id="ocrProgWrap" style="margin-top:10px">
+          <div class="prog-label" id="ocrProgLabel">Iniciando OCR...</div>
+          <div class="prog"><div class="prog-fill" id="ocrProgFill"></div></div>
+        </div>
+        <div class="log" id="ocrLog"></div>
+        <div id="ocrExtraido" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-label">Historial SDI por periodo</div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+          Para mayor precisión en el promedio de las últimas 250 semanas, registre el SDI por cada año cotizado.
+        </p>
+        <div id="periodosList">
+          <div class="periodo-row">
+            <div class="field"><label>Año</label><input type="number" class="p-year" placeholder="2022" min="1990" max="2030"></div>
+            <div class="field"><label>SDI (MXN/día)</label><input type="number" class="p-sdi" placeholder="450"></div>
+            <div class="field"><label>Semanas</label><input type="number" class="p-sem" placeholder="52" min="0" max="53"></div>
+            <button class="btn-icon" onclick="removePeriodo(this)" title="Eliminar">✕</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-outline" onclick="addPeriodo()" style="flex:1">+ Agregar año</button>
+          <button class="btn-outline" onclick="calcPromedioSDI()" style="flex:1;border-color:var(--navy);color:var(--navy)">Calcular promedio →</button>
+        </div>
+        <div id="promedioResult" style="margin-top:8px;font-size:11px;color:var(--green-dark);font-family:var(--mono)"></div>
+      </div>
+
+      <div class="card reveal" style="margin-bottom:0">
+        <div class="card-label">Notas del expediente</div>
+        <div class="field">
+          <label>Observaciones internas</label>
+          <textarea id="notas" rows="3" style="width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;padding:9px 11px;border-radius:7px;outline:none;resize:vertical;line-height:1.6" placeholder="Semanas en trámite, aclaraciones pendientes, contexto del caso..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG GLOBAL -->
+  <div class="log" id="globalLog" style="margin-top:16px"></div>
+
+  <div class="btn-row" style="margin-top:16px">
+    <button class="btn btn-primary" id="btnCalc" onclick="calcularEscenarios()">
+      <span class="btn-progress" id="btnCalcProgress"></span>
+      <span id="btnCalcLabel">▶ CALCULAR ESCENARIOS DE RETIRO</span>
+    </button>
+    <button class="btn btn-secondary" disabled id="btnQuickReport">↓ REPORTE RÁPIDO</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PANEL 2 ═══ -->
+<div class="panel" id="panelCalculo">
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+    <div>
+      <div class="section-label">Análisis generado</div>
+      <h1 class="page-title" id="calcTitulo">—</h1>
+      <div class="title-bar"></div>
+      <p class="page-desc" id="calcMeta">—</p>
+    </div>
+    <button class="btn-outline" onclick="goTab('ingreso')" style="flex-shrink:0;margin-top:8px">← Modificar datos</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid show reveal" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-lbl">Pensión mensual neta</div>
+      <div class="stat-val" id="sPensionNeta">$0</div>
+      <div class="stat-sub">Esc. recomendado</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-lbl">Pensión anual bruta</div>
+      <div class="stat-val" id="sPensionAnual">$0</div>
+      <div class="stat-sub">Antes de ISR</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-lbl">Semanas totales</div>
+      <div class="stat-val" id="sSemanas">0</div>
+      <div class="stat-sub">Para cálculo</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-lbl">Años reconocidos</div>
+      <div class="stat-val" id="sAnios">0</div>
+      <div class="stat-sub">Post-500 semanas</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-lbl">Vitalicio estimado</div>
+      <div class="stat-val" id="sVitalicio">$0</div>
+      <div class="stat-sub">Escenario base</div>
+    </div>
+  </div>
+
+  <!-- ESCENARIOS -->
+  <div class="section-label" style="margin-bottom:12px">Escenarios proyectados</div>
+  <div class="escenario-grid reveal" id="escenarioGrid"></div>
+
+  <!-- DESGLOSE -->
+  <div class="section-label" style="margin-bottom:12px">Desglose del cálculo — Escenario base (Art. 167 LSS 1973)</div>
+  <div class="card reveal">
+    <table class="desglose-table" id="desgloseTable"></table>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section-label" style="margin-bottom:12px">Análisis visual comparativo</div>
+  <div class="chart-grid reveal">
+    <div class="chart-card">
+      <div class="chart-title">Pensión mensual neta por escenario</div>
+      <div style="position:relative;height:220px">
+        <canvas id="chartEsc" role="img" aria-label="Comparativa de pensión mensual por escenario">Barras comparativas de pensión por escenario.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Acumulado vitalicio proyectado</div>
+      <div style="position:relative;height:220px">
+        <canvas id="chartVit" role="img" aria-label="Acumulado vitalicio por escenario">Barras de acumulado vitalicio.</canvas>
+      </div>
+    </div>
+  </div>
+  <div class="chart-grid reveal">
+    <div class="chart-card">
+      <div class="chart-title">Composición pensión anual bruta</div>
+      <div style="position:relative;height:220px">
+        <canvas id="chartComp" role="img" aria-label="Composición de la pensión">Dona de composición de pensión.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Costo vs. beneficio — Modalidad 40</div>
+      <div style="position:relative;height:220px">
+        <canvas id="chartM40" role="img" aria-label="ROI de Modalidad 40">Líneas de costo y beneficio acumulado.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALISIS -->
+  <div class="section-label" style="margin-bottom:12px">Análisis y recomendación</div>
+  <div class="analisis-box reveal" id="analisisBox"></div>
+
+  <div class="btn-row-equal reveal">
+    <button class="btn btn-primary" onclick="generarReporte()">
+      ▶ GENERAR REPORTE EJECUTIVO
+    </button>
+    <button class="btn btn-secondary" onclick="descargarPDF()">↓ DESCARGAR PDF</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PANEL 3 ═══ -->
+<div class="panel" id="panelReporte">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <div>
+      <div class="section-label">Documento generado</div>
+      <h1 class="page-title">Reporte <strong>Ejecutivo</strong> de Retiro</h1>
+      <div class="title-bar"></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-outline" onclick="goTab('calculo')">← Volver al análisis</button>
+      <button class="btn btn-primary" onclick="descargarPDF()" style="width:auto;padding:11px 22px">↓ DESCARGAR PDF</button>
+    </div>
+  </div>
+  <div class="reporte-wrap" id="reporteContent"></div>
+</div>
+
+</main>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <span><span class="footer-brand">Barajas &amp; Quiñonez</span> · Servicios Contables · Mexicali, B.C.</span>
+  <span id="footerStatus">— EN ESPERA —</span>
+</footer>
+
+<script>
+'use strict';
+
+// ── ESTADO ──────────────────────────────────────────────────────────────────
+let leySeleccionada = '73';
+let tieneConyugue   = 'si';
+let incluyeMod40    = 'si';
+let resultados      = null;
+let charts          = {};
+
+// ── NAV ─────────────────────────────────────────────────────────────────────
+function goTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p => {
+    const id = 'panel' + tab.charAt(0).toUpperCase() + tab.slice(1);
+    p.classList.toggle('active', p.id === id);
+  });
+  document.querySelector('main').scrollTop = 0;
+  window.scrollTo(0, 0);
+  setTimeout(activateReveals, 80);
+}
+document.querySelectorAll('.nav-tab:not(.locked)').forEach(t => {
+  t.addEventListener('click', () => goTab(t.dataset.tab));
+});
+
+// ── SCROLL REVEAL ────────────────────────────────────────────────────────────
+function activateReveals() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
+}
+document.addEventListener('DOMContentLoaded', () => { setTimeout(activateReveals, 100); });
+
+// ── TOGGLES ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('[data-ley]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-ley]').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); leySeleccionada = b.dataset.ley;
+}));
+document.querySelectorAll('[data-fam]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll(`[data-fam="${b.dataset.fam}"]`).forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  if (b.dataset.fam === 'conyuge') tieneConyugue = b.dataset.val;
+}));
+document.querySelectorAll('[data-mod40]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-mod40]').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); incluyeMod40 = b.dataset.mod40;
+  document.getElementById('mod40Fields').style.display = incluyeMod40 === 'si' ? '' : 'none';
+}));
+
+// ── OCR ──────────────────────────────────────────────────────────────────────
+const ocrDrop = document.getElementById('ocrDrop');
+ocrDrop.addEventListener('dragover', e => { e.preventDefault(); ocrDrop.classList.add('over'); });
+ocrDrop.addEventListener('dragleave', () => ocrDrop.classList.remove('over'));
+ocrDrop.addEventListener('drop', e => { e.preventDefault(); ocrDrop.classList.remove('over'); if (e.dataTransfer.files[0]) procesarOCR(e.dataTransfer.files[0]); });
+document.getElementById('ocrFile').addEventListener('change', e => { if (e.target.files[0]) procesarOCR(e.target.files[0]); });
+
+function ocrLog(msg, type='info') {
+  const el = document.getElementById('ocrLog');
+  el.classList.add('show');
+  const d = document.createElement('div');
+  d.className = 'll ' + type;
+  const t = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  d.textContent = `[${t}] ${msg}`;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+async function procesarOCR(file) {
+  const progWrap = document.getElementById('ocrProgWrap');
+  const progLabel = document.getElementById('ocrProgLabel');
+  const progFill  = document.getElementById('ocrProgFill');
+  const extraido  = document.getElementById('ocrExtraido');
+  progWrap.classList.add('show'); extraido.innerHTML = '';
+  ocrDrop.classList.add('loaded');
+  document.getElementById('ocrCount').textContent = '✓ ' + file.name;
+  ocrLog('Iniciando Tesseract OCR...', 'info');
+  try {
+    const worker = await Tesseract.createWorker('spa', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          progFill.style.width = (m.progress * 100).toFixed(0) + '%';
+          progLabel.textContent = 'Reconociendo texto... ' + (m.progress * 100).toFixed(0) + '%';
+        } else {
+          progLabel.textContent = m.status;
+        }
+      }
+    });
+    const { data: { text } } = await worker.recognize(file);
+    await worker.terminate();
+    ocrLog('OCR completado — extrayendo campos', 'ok');
+    const datos = extraerCampos(text);
+    mostrarExtraidos(datos, extraido);
+  } catch(e) {
+    ocrLog('Error OCR: ' + e.message, 'err');
+  }
+}
+
+function extraerCampos(txt) {
+  const r = {};
+  const semMatch = txt.match(/semanas?\s*(?:cotizadas?|reconocidas?|acreditadas?)[\s:\-]*([0-9,\.]+)/i);
+  if (semMatch) r.semanas = parseFloat(semMatch[1].replace(',',''));
+  const nssMatch = txt.match(/n[úu]mero?\s*de\s*seguridad\s*social[\s:\-]*([0-9\s\-]{8,14})/i)
+    || txt.match(/\bNSS[\s:\-]+([0-9\s\-]{8,14})/i);
+  if (nssMatch) r.nss = nssMatch[1].replace(/[\s\-]/g,'').trim();
+  const sdiMatch = txt.match(/\bSDI[\s:\-]*\$?\s*([0-9,\.]+)/i)
+    || txt.match(/salario\s*(?:diario\s*)?integrado[\s:\-]*\$?\s*([0-9,\.]+)/i);
+  if (sdiMatch) r.sdi = parseFloat(sdiMatch[1].replace(',',''));
+  const nacMatch = txt.match(/(?:fecha\s*(?:de\s*)?nacimiento|nacido?)[\s:\-]*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/i);
+  if (nacMatch) r.fechaNac = nacMatch[1];
+  return r;
+}
+
+function mostrarExtraidos(datos, container) {
+  const mapa = { semanas:'Semanas cotizadas', nss:'NSS', sdi:'SDI (MXN/día)', fechaNac:'Fecha de nacimiento' };
+  let filas = '', hayDatos = false;
+  for (const [k, lbl] of Object.entries(mapa)) {
+    if (datos[k]) {
+      hayDatos = true;
+      filas += `<div style="display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text3)">${lbl}</span>
+        <span style="color:var(--navy);font-family:var(--mono);font-weight:600">${datos[k]}</span>
+      </div>`;
+    }
+  }
+  if (hayDatos) {
+    ocrLog('Datos detectados: ' + Object.keys(datos).join(', '), 'ok');
+    container.innerHTML = `<div style="background:var(--navy-lt);border:1px solid var(--navy-md);border-radius:7px;padding:12px;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--navy);text-transform:uppercase;margin-bottom:8px">✓ Campos extraídos del documento</div>
+      ${filas}
+    </div>
+    <button class="btn-outline" onclick='aplicarExtraidos(${JSON.stringify(datos)})' style="width:100%;border-color:var(--green-dark);color:var(--green-dark)">
+      Aplicar datos al formulario →
+    </button>`;
+  } else {
+    ocrLog('No se detectaron campos estructurados', 'warn');
+    container.innerHTML = `<div style="font-size:11px;color:var(--text3);padding:8px 0">No se detectaron campos. Verifique la calidad de la imagen o capture los datos manualmente.</div>`;
+  }
+}
+
+function aplicarExtraidos(datos) {
+  if (datos.semanas) { document.getElementById('semanas').value = datos.semanas; document.getElementById('semanas').classList.add('autodetected'); }
+  if (datos.nss)     { document.getElementById('nss').value     = datos.nss;     document.getElementById('nss').classList.add('autodetected'); }
+  if (datos.sdi)     { document.getElementById('sdi').value     = datos.sdi;     document.getElementById('sdi').classList.add('autodetected'); }
+  ocrLog('Datos aplicados al formulario', 'ok');
+}
+
+// ── PERIODOS SDI ──────────────────────────────────────────────────────────────
+function addPeriodo() {
+  const row = document.createElement('div');
+  row.className = 'periodo-row';
+  row.innerHTML = `
+    <div class="field"><label>Año</label><input type="number" class="p-year" placeholder="2021" min="1990" max="2030"></div>
+    <div class="field"><label>SDI (MXN/día)</label><input type="number" class="p-sdi" placeholder="500"></div>
+    <div class="field"><label>Semanas</label><input type="number" class="p-sem" placeholder="52" min="0" max="53"></div>
+    <button class="btn-icon" onclick="removePeriodo(this)" title="Eliminar">✕</button>`;
+  document.getElementById('periodosList').appendChild(row);
+}
+function removePeriodo(btn) { btn.closest('.periodo-row').remove(); }
+function calcPromedioSDI() {
+  let sumaSems = 0, sumaProducto = 0;
+  document.querySelectorAll('.periodo-row').forEach(r => {
+    const sdi = parseFloat(r.querySelector('.p-sdi').value) || 0;
+    const sem = parseFloat(r.querySelector('.p-sem').value) || 0;
+    sumaProducto += sdi * sem; sumaSems += sem;
+  });
+  if (!sumaSems) { document.getElementById('promedioResult').textContent = 'Sin datos suficientes.'; return; }
+  const prom = sumaProducto / sumaSems;
+  document.getElementById('promedioResult').textContent =
+    `SDI promedio ponderado: $${prom.toFixed(2)}/día (${sumaSems.toFixed(1)} semanas computadas)`;
+  document.getElementById('sdi').value = prom.toFixed(2);
+  document.getElementById('sdi').classList.add('autodetected');
+}
+
+// ── TABLAS LEY 73 (Art. 167 LSS) ─────────────────────────────────────────────
+const TABLA_167 = [
+  {min:0,    max:1,    cuantia:0.8000, incr:0.00563},
+  {min:1.01, max:1.25, cuantia:0.7711, incr:0.00814},
+  {min:1.26, max:1.50, cuantia:0.5818, incr:0.01178},
+  {min:1.51, max:1.75, cuantia:0.4923, incr:0.01430},
+  {min:1.76, max:2.00, cuantia:0.4267, incr:0.01615},
+  {min:2.01, max:2.25, cuantia:0.3765, incr:0.01756},
+  {min:2.26, max:2.50, cuantia:0.3368, incr:0.01868},
+  {min:2.51, max:2.75, cuantia:0.3048, incr:0.01958},
+  {min:2.76, max:3.00, cuantia:0.2783, incr:0.02033},
+  {min:3.01, max:3.25, cuantia:0.2560, incr:0.02096},
+  {min:3.26, max:3.50, cuantia:0.2370, incr:0.02149},
+  {min:3.51, max:3.75, cuantia:0.2207, incr:0.02195},
+  {min:3.76, max:4.00, cuantia:0.2065, incr:0.02235},
+  {min:4.01, max:4.25, cuantia:0.1939, incr:0.02271},
+  {min:4.26, max:4.50, cuantia:0.1829, incr:0.02302},
+  {min:4.51, max:4.75, cuantia:0.1730, incr:0.02330},
+  {min:4.76, max:5.00, cuantia:0.1641, incr:0.02355},
+  {min:5.01, max:5.25, cuantia:0.1561, incr:0.02377},
+  {min:5.26, max:5.50, cuantia:0.1488, incr:0.02398},
+  {min:5.51, max:5.75, cuantia:0.1422, incr:0.02416},
+  {min:5.76, max:6.00, cuantia:0.1362, incr:0.02433},
+  {min:6.01, max:Infinity, cuantia:0.13, incr:0.02450},
+];
+const FACTOR_EDAD = {60:0.75,61:0.80,62:0.85,63:0.90,64:0.95,65:1.00};
+const ISR_TABLE = [
+  {li:0,       ls:644.58,    cf:0,        pct:0.0192},
+  {li:644.59,  ls:5470.92,   cf:12.38,    pct:0.0640},
+  {li:5470.93, ls:9614.66,   cf:321.26,   pct:0.1088},
+  {li:9614.67, ls:11176.62,  cf:772.10,   pct:0.1600},
+  {li:11176.63,ls:13381.47,  cf:1022.01,  pct:0.1792},
+  {li:13381.48,ls:26988.50,  cf:1417.12,  pct:0.2136},
+  {li:26988.51,ls:42537.58,  cf:4323.58,  pct:0.2352},
+  {li:42537.59,ls:81211.25,  cf:7980.73,  pct:0.3000},
+  {li:81211.26,ls:108281.67, cf:19582.83, pct:0.3200},
+  {li:108281.68,ls:324845.01,cf:28245.36, pct:0.3400},
+  {li:324845.02,ls:Infinity, cf:101876.90,pct:0.3500},
+];
+
+function getTabla(vecesUMA) {
+  return TABLA_167.find(r => vecesUMA >= r.min && vecesUMA <= r.max) || TABLA_167[TABLA_167.length - 1];
+}
+function calcISR(mensual, uma) {
+  const exencion = uma * 15;
+  const base = Math.max(0, mensual - exencion);
+  if (!base) return 0;
+  const t = ISR_TABLE.find(r => base >= r.li && base <= r.ls) || ISR_TABLE[ISR_TABLE.length - 1];
+  return t.cf + (base - t.li) * t.pct;
+}
+function aniosReconocidos(totalSem) {
+  if (totalSem <= 500) return 0;
+  const post = totalSem - 500;
+  return Math.floor(post / 52) + (post % 52 > 0 ? 1 : 0);
+}
+function calcLey73(sdi, totalSem, edadRetiro, uma, conyuge, hijos, padres) {
+  const vecesUMA = sdi / uma;
+  const tab = getTabla(vecesUMA);
+  const factorEdad = FACTOR_EDAD[Math.min(65, Math.max(60, edadRetiro))] || 1;
+  const anios = aniosReconocidos(totalSem);
+  const cuantiaBasicaAnual  = sdi * tab.cuantia * 365;
+  const incrementoAnual     = sdi * tab.incr * 365;
+  const totalIncrementos    = incrementoAnual * anios;
+  const vejezAnual          = (cuantiaBasicaAnual + totalIncrementos) * factorEdad;
+  const asigConyuge  = conyuge === 'si' ? vejezAnual * 0.15 : 0;
+  const asigHijos    = hijos > 0 ? vejezAnual * 0.10 * hijos : 0;
+  const asigPadres   = (!asigConyuge && !asigHijos && padres > 0) ? vejezAnual * 0.10 * padres : 0;
+  const totalAnual   = vejezAnual + asigConyuge + asigHijos + asigPadres;
+  const mensualBruta = totalAnual / 12;
+  const isr          = calcISR(mensualBruta, uma);
+  const mensualNeta  = mensualBruta - isr;
+  return {
+    vecesUMA: +vecesUMA.toFixed(4),
+    cuantiaBasicaPct: +(tab.cuantia * 100).toFixed(2),
+    incrementoPct: +(tab.incr * 100).toFixed(4),
+    factorEdadPct: +(factorEdad * 100).toFixed(0),
+    anios, cuantiaBasicaAnual, incrementoAnual, totalIncrementos,
+    vejezAnual, asigConyuge, asigHijos, asigPadres,
+    totalAnual, mensualBruta, isr, mensualNeta,
+  };
+}
+function calcCostoMod40(sdiMod40, anyos) {
+  let total = 0;
+  for (let i = 0; i < anyos; i++) total += sdiMod40 * (0.10075 + i * 0.01091) * 365;
+  return total;
+}
+
+function mxn(n) { return '$' + Math.round(n).toLocaleString('es-MX'); }
+
+// ── CALCULAR ──────────────────────────────────────────────────────────────────
+function calcularEscenarios() {
+  const nombre       = document.getElementById('nombre').value.trim() || 'Asegurado';
+  const nss          = document.getElementById('nss').value.trim();
+  const semanas      = parseFloat(document.getElementById('semanas').value) || 0;
+  const semanasRec   = parseFloat(document.getElementById('semanasRec').value) || 0;
+  const semanasAcl   = parseFloat(document.getElementById('semanasAcl').value) || 0;
+  const edadRetiro   = parseInt(document.getElementById('edadRetiro').value) || 60;
+  const sdi          = parseFloat(document.getElementById('sdi').value) || 0;
+  const hijos        = parseInt(document.getElementById('hijos').value) || 0;
+  const padres       = parseInt(document.getElementById('padres').value) || 0;
+  const uma          = parseFloat(document.getElementById('uma').value) || 108.57;
+  const esperanza    = parseInt(document.getElementById('esperanza').value) || 80;
+  const sdiMod40raw  = parseFloat(document.getElementById('sdiMod40').value) || 2714;
+  const anyosMod40   = parseInt(document.getElementById('anyosMod40').value) || 3;
+  const notas        = document.getElementById('notas').value.trim();
+
+  if (!sdi || !semanas) {
+    alert('Ingresa el SDI y las semanas cotizadas para continuar.');
+    return;
+  }
+
+  // Animación botón
+  const btn = document.getElementById('btnCalc');
+  btn.classList.add('loading');
+  document.getElementById('btnCalcLabel').textContent = 'Calculando...';
+  document.getElementById('btnCalcProgress').style.width = '0%';
+  document.getElementById('footerStatus').textContent = '— PROCESANDO —';
+
+  setTimeout(() => {
+    const totalSem   = semanas + semanasRec + semanasAcl;
+    const sdiMod40   = Math.min(sdiMod40raw, uma * 25);
+
+    const e1 = calcLey73(sdi, totalSem, edadRetiro, uma, tieneConyugue, hijos, padres);
+    const e2 = calcLey73(sdiMod40, totalSem + anyosMod40 * 52, edadRetiro, uma, tieneConyugue, hijos, padres);
+    const e3 = calcLey73(sdi, totalSem + 260, 65, uma, tieneConyugue, hijos, padres);
+
+    const costoMod40 = calcCostoMod40(sdiMod40, anyosMod40);
+    const benefMod40Anual = e2.totalAnual - e1.totalAnual;
+    const roiMod40 = costoMod40 / benefMod40Anual;
+
+    const aniosRetiro = esperanza - edadRetiro;
+    const v1 = e1.mensualNeta * 12 * aniosRetiro;
+    const v2 = e2.mensualNeta * 12 * aniosRetiro - costoMod40;
+    const v3 = e3.mensualNeta * 12 * (esperanza - 65);
+
+    resultados = {
+      nombre, nss, semanas, totalSem, edadRetiro, sdi, sdiMod40, anyosMod40,
+      hijos, tieneConyugue, uma, esperanza, notas,
+      e1, e2, e3, v1, v2, v3, costoMod40, roiMod40, benefMod40Anual,
+    };
+
+    btn.classList.remove('loading'); btn.classList.add('done');
+    document.getElementById('btnCalcLabel').textContent = '✓ ESCENARIOS CALCULADOS';
+    document.getElementById('footerStatus').textContent = `— ${nombre.toUpperCase()} · ${new Date().toLocaleDateString('es-MX')} —`;
+    document.getElementById('btnQuickReport').disabled = false;
+
+    // Desbloquear tabs
+    document.getElementById('tabCalculo').classList.remove('locked');
+    document.getElementById('tabReporte').classList.remove('locked');
+
+    renderCalculo();
+    goTab('calculo');
+  }, 700);
+}
+
+// ── RENDER CALCULO ───────────────────────────────────────────────────────────
+function renderCalculo() {
+  const r = resultados;
+  document.getElementById('calcTitulo').innerHTML = `Análisis de <strong>Retiro</strong> — ${r.nombre}`;
+  document.getElementById('calcMeta').textContent =
+    `NSS: ${r.nss || '—'} · ${r.totalSem.toFixed(0)} semanas · SDI: ${mxn(r.sdi)}/día · Retiro: ${r.edadRetiro} años · UMA: ${r.uma}`;
+
+  document.getElementById('sPensionNeta').textContent = mxn(r.e1.mensualNeta);
+  document.getElementById('sPensionAnual').textContent = mxn(r.e1.totalAnual);
+  document.getElementById('sSemanas').textContent = r.totalSem.toFixed(0);
+  document.getElementById('sAnios').textContent = r.e1.anios;
+  document.getElementById('sVitalicio').textContent = mxn(r.v1 / 1000000 >= 1 ? r.v1 : r.v1).replace('$', '$').split('').slice(0, 8).join('') + '…';
+  document.getElementById('sVitalicio').textContent = mxn(r.v1);
+
+  // Escenarios
+  const mejor = Math.max(r.v1, r.v2, r.v3);
+  const escHTML = [
+    {
+      num:'Escenario 01', label:'BASE',
+      title:'Retiro actual sin modificaciones',
+      e: r.e1, v: r.v1,
+      detail: `SDI: ${mxn(r.sdi)}/día\nSemanas: ${r.totalSem.toFixed(0)}\nAños reconocidos: ${r.e1.anios}\nISR mensual: ${mxn(r.e1.isr)}\nVitalicio: ${mxn(r.v1)}`,
+      rec: r.v1 === mejor,
+    },
+    {
+      num:'Escenario 02', label:`MOD. 40 · ${r.anyosMod40} AÑOS`,
+      title:'Con Modalidad 40',
+      e: r.e2, v: r.v2,
+      detail: `SDI Mod40: ${mxn(r.sdiMod40)}/día\nCosto total: ${mxn(r.costoMod40)}\nMejora mensual: +${mxn(r.e2.mensualNeta - r.e1.mensualNeta)}\nROI: ${r.roiMod40.toFixed(1)} años\nVitalicio neto: ${mxn(r.v2)}`,
+      rec: r.v2 === mejor,
+    },
+    {
+      num:'Escenario 03', label:'VEJEZ 65',
+      title:'Retiro a los 65 años (factor 100%)',
+      e: r.e3, v: r.v3,
+      detail: `Factor edad: 100%\n+260 semanas aprox.\nAños reconocidos: ${r.e3.anios}\nISR mensual: ${mxn(r.e3.isr)}\nVitalicio: ${mxn(r.v3)}`,
+      rec: r.v3 === mejor,
+    },
+  ].map(esc => `
+    <div class="escenario-card ${esc.rec ? 'recommended' : ''}">
+      <div class="esc-num">${esc.num} &nbsp;·&nbsp; ${esc.label}</div>
+      <div class="esc-title">${esc.title}</div>
+      <div class="esc-pension">${mxn(esc.e.mensualNeta)}</div>
+      <div class="esc-pension-label">mensual neta estimada</div>
+      <div class="esc-detail">${esc.detail.split('\n').map(l => {
+        const [lbl, val] = l.split(':');
+        return val ? `${lbl}: <span>${val.trim()}</span>` : l;
+      }).join('<br>')}</div>
+    </div>`).join('');
+  document.getElementById('escenarioGrid').innerHTML = escHTML;
+
+  // Desglose
+  const e = r.e1;
+  document.getElementById('desgloseTable').innerHTML = `
+    <thead><tr>
+      <th style="width:60%">Concepto</th>
+      <th style="text-align:right">Importe</th>
+    </tr></thead>
+    <tbody>
+    <tr><td>SDI promedio últimas 250 semanas</td><td class="val">${mxn(r.sdi)} / día</td></tr>
+    <tr><td>Salario en veces UMA</td><td class="val">${e.vecesUMA.toFixed(4)} veces</td></tr>
+    <tr><td>% Cuantía básica (Art. 167 LSS 1973)</td><td class="val">${e.cuantiaBasicaPct}%</td></tr>
+    <tr><td>Cuantía básica anual</td><td class="val">${mxn(e.cuantiaBasicaAnual)}</td></tr>
+    <tr><td>% Incremento anual por año adicional</td><td class="val">${e.incrementoPct}%</td></tr>
+    <tr><td>Años reconocidos post-500 semanas</td><td class="val">${e.anios} años</td></tr>
+    <tr><td>Total incrementos anuales</td><td class="val">${mxn(e.totalIncrementos)}</td></tr>
+    <tr><td>Pensión de vejez anual (antes de factor)</td><td class="val">${mxn(e.vejezAnual / e.factorEdadPct * 100)}</td></tr>
+    <tr><td>Factor por edad de retiro (${r.edadRetiro} años)</td><td class="val">${e.factorEdadPct}%</td></tr>
+    <tr><td>Pensión de vejez ajustada anual</td><td class="val">${mxn(e.vejezAnual)}</td></tr>
+    ${e.asigConyuge ? `<tr><td>Asignación familiar cónyuge (15%)</td><td class="val">${mxn(e.asigConyuge)}</td></tr>` : ''}
+    ${e.asigHijos   ? `<tr><td>Asignación hijos (10% × ${r.hijos})</td><td class="val">${mxn(e.asigHijos)}</td></tr>` : ''}
+    ${e.asigPadres  ? `<tr><td>Asignación padres (10%)</td><td class="val">${mxn(e.asigPadres)}</td></tr>` : ''}
+    <tr class="total-row"><td>Pensión anual total bruta</td><td class="val">${mxn(e.totalAnual)}</td></tr>
+    <tr><td>Pensión mensual bruta</td><td class="val">${mxn(e.mensualBruta)}</td></tr>
+    <tr><td>ISR mensual estimado (exención 15 UMA)</td><td class="val neg">− ${mxn(e.isr)}</td></tr>
+    <tr class="total-row"><td>Pensión mensual neta estimada</td><td class="val" style="font-size:16px">${mxn(e.mensualNeta)}</td></tr>
+    </tbody>`;
+
+  renderCharts();
+  renderAnalisis();
+  setTimeout(activateReveals, 100);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+function renderCharts() {
+  const r = resultados;
+  Object.values(charts).forEach(c => c.destroy()); charts = {};
+
+  const COL = { navy:'#1B2A5E', green:'#1D6B38', amber:'#B45309', purple:'#5C3299', teal:'#0F5E55', border:'#D1D9EF' };
+
+  charts.esc = new Chart(document.getElementById('chartEsc'), {
+    type: 'bar',
+    data: {
+      labels: ['Base', 'Mod. 40', 'Vejez 65'],
+      datasets: [{
+        data: [Math.round(r.e1.mensualNeta), Math.round(r.e2.mensualNeta), Math.round(r.e3.mensualNeta)],
+        backgroundColor: [COL.navy + '22', COL.green + '22', COL.amber + '22'],
+        borderColor: [COL.navy, COL.green, COL.amber],
+        borderWidth: 1.5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { color: '#7A8DB8', callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#D1D9EF55' } },
+        x: { ticks: { color: '#7A8DB8' }, grid: { display: false } },
+      }
+    }
+  });
+
+  charts.vit = new Chart(document.getElementById('chartVit'), {
+    type: 'bar',
+    data: {
+      labels: ['Base', 'Mod. 40 (neto)', 'Vejez 65'],
+      datasets: [{
+        data: [Math.round(r.v1), Math.round(r.v2), Math.round(r.v3)],
+        backgroundColor: [COL.navy + '22', COL.green + '22', COL.amber + '22'],
+        borderColor: [COL.navy, COL.green, COL.amber],
+        borderWidth: 1.5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { color: '#7A8DB8', callback: v => '$' + (v/1000000).toFixed(1) + 'M' }, grid: { color: '#D1D9EF55' } },
+        x: { ticks: { color: '#7A8DB8' }, grid: { display: false } },
+      }
+    }
+  });
+
+  charts.comp = new Chart(document.getElementById('chartComp'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Cuantía básica', 'Incrementos', 'Asignaciones'],
+      datasets: [{
+        data: [
+          Math.round(r.e1.cuantiaBasicaAnual),
+          Math.round(r.e1.totalIncrementos),
+          Math.round(r.e1.asigConyuge + r.e1.asigHijos + r.e1.asigPadres),
+        ],
+        backgroundColor: [COL.navy, COL.green, COL.amber],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { color: '#3D4E7A', font: { size: 11 } } } },
+    }
+  });
+
+  const years = r.anyosMod40 * 2 + 6;
+  const lbls  = Array.from({ length: years }, (_, i) => `Año ${i + 1}`);
+  const costoAcum = lbls.map((_, i) => {
+    const a = i + 1;
+    return a <= r.anyosMod40 ? Math.round(r.costoMod40 / r.anyosMod40 * a) : Math.round(r.costoMod40);
+  });
+  const benAcum = lbls.map((_, i) => {
+    const postRetiro = i + 1 - r.anyosMod40;
+    return postRetiro <= 0 ? 0 : Math.round(r.benefMod40Anual * 12 * postRetiro);
+  });
+
+  charts.m40 = new Chart(document.getElementById('chartM40'), {
+    type: 'line',
+    data: {
+      labels: lbls,
+      datasets: [
+        { label: 'Costo acumulado', data: costoAcum, borderColor: COL.amber, borderWidth: 2, fill: false, pointRadius: 0 },
+        { label: 'Beneficio acumulado', data: benAcum, borderColor: COL.green, borderWidth: 2, fill: false, pointRadius: 0 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#3D4E7A', font: { size: 11 } } } },
+      scales: {
+        y: { ticks: { color: '#7A8DB8', callback: v => '$' + (v / 1000).toFixed(0) + 'K' }, grid: { color: '#D1D9EF55' } },
+        x: { ticks: { color: '#7A8DB8', maxTicksLimit: 8 }, grid: { display: false } },
+      }
+    }
+  });
+}
+
+// ── ANÁLISIS NARRATIVO ────────────────────────────────────────────────────────
+function renderAnalisis() {
+  const r = resultados;
+  const mejor = Math.max(r.v1, r.v2, r.v3);
+  const escMejor = mejor === r.v1 ? 'Escenario 01 (base)' : mejor === r.v2 ? 'Escenario 02 (Modalidad 40)' : 'Escenario 03 (vejez a 65 años)';
+  const cobertura = ((r.e1.mensualNeta / 12000) * 100).toFixed(0);
+
+  let alertas = '', positivos = '';
+  if (r.totalSem < 500) alertas += `<div class="notice warn"><span class="notice-icon">⚠</span>Con ${r.totalSem.toFixed(0)} semanas no se alcanza el mínimo de 500 semanas requerido por Ley 73. Faltan ${(500 - r.totalSem).toFixed(0)} semanas.</div>`;
+  if (r.roiMod40 > 10) alertas += `<div class="notice warn"><span class="notice-icon">⚠</span>El ROI de la Modalidad 40 es ${r.roiMod40.toFixed(1)} años. Evalúe frente a la esperanza de vida y rendimientos alternativos de inversión.</div>`;
+  if (r.e1.isr > 0) alertas += `<div class="notice warn"><span class="notice-icon">⚠</span>La pensión está sujeta a ISR de ${mxn(r.e1.isr)}/mes. Verifique que el IMSS aplique correctamente la exención de 15 UMAs diarias.</div>`;
+  if (r.v2 > r.v1 * 1.08) positivos += `<div class="notice ok"><span class="notice-icon">✓</span>La Modalidad 40 genera un beneficio vitalicio neto adicional de ${mxn(r.v2 - r.v1)}, recuperando la inversión en ${r.roiMod40.toFixed(1)} años.</div>`;
+  if (r.totalSem > 1000) positivos += `<div class="notice ok"><span class="notice-icon">✓</span>Con ${r.totalSem.toFixed(0)} semanas el asegurado tiene derecho pleno a pensión por cesantía en edad avanzada.</div>`;
+
+  document.getElementById('analisisBox').innerHTML = `
+    <p>El escenario con <strong>mayor rendimiento vitalicio neto</strong> es el <strong>${escMejor}</strong>, con un acumulado proyectado de <strong>${mxn(mejor)}</strong> durante ${r.esperanza - r.edadRetiro} años estimados post-retiro.</p>
+    <p>La pensión base de <strong>${mxn(r.e1.mensualNeta)}/mes</strong> representa el <strong>${cobertura}%</strong> de un parámetro de subsistencia urbana de $12,000/mes en Mexicali. ${+cobertura < 80 ? 'Se recomienda evaluar ahorro voluntario complementario (AFORE, PPOR, inversión directa).' : 'La cobertura básica es adecuada para el nivel de vida proyectado.'}</p>
+    <p>El salario en veces UMA de <strong>${r.e1.vecesUMA}</strong> ubica al asegurado en el rango de cuantía básica de <strong>${r.e1.cuantiaBasicaPct}%</strong> con un incremento anual de <strong>${r.e1.incrementoPct}%</strong> por cada año adicional posterior a las primeras 500 semanas.</p>
+    ${alertas}${positivos}`;
+}
+
+// ── REPORTE ───────────────────────────────────────────────────────────────────
+function generarReporte() {
+  const r = resultados;
+  if (!r) { alert('Primero calcule los escenarios.'); return; }
+  const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+  const mejor = Math.max(r.v1, r.v2, r.v3);
+
+  document.getElementById('reporteContent').innerHTML = `
+    <div class="rep-header">
+      <div>
+        <div class="rep-logo">NODUS RSP</div>
+        <div class="rep-logo-sub">Retirement Scenario Planning · Barajas &amp; Quiñonez</div>
+      </div>
+      <div class="rep-fecha">Análisis de Retiro<br>${hoy}</div>
+    </div>
+
+    <div class="rep-nombre">${r.nombre}</div>
+    <div class="rep-sub">Análisis de escenarios de pensión IMSS · Ley 1973 · Documento de consultoría</div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">Datos del asegurado</div>
+      <div class="rep-metrics">
+        <div class="rep-metric"><div class="rep-metric-label">NSS</div><div class="rep-metric-value" style="font-size:13px">${r.nss || '—'}</div></div>
+        <div class="rep-metric"><div class="rep-metric-label">Semanas totales</div><div class="rep-metric-value">${r.totalSem.toFixed(0)}</div></div>
+        <div class="rep-metric"><div class="rep-metric-label">SDI promedio</div><div class="rep-metric-value" style="font-size:15px">${mxn(r.sdi)}/día</div></div>
+        <div class="rep-metric"><div class="rep-metric-label">Edad de retiro</div><div class="rep-metric-value">${r.edadRetiro} años</div></div>
+      </div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">Escenarios analizados</div>
+      <div class="rep-esc ${r.v1 === mejor ? 'rec' : ''}">
+        <div class="rep-esc-title">Escenario 01 — Retiro actual sin modificaciones</div>
+        <div class="rep-esc-pension">${mxn(r.e1.mensualNeta)}/mes neto</div>
+        <div class="rep-esc-desc">Anual bruta: ${mxn(r.e1.totalAnual)} · ISR: ${mxn(r.e1.isr)}/mes · Vitalicio: ${mxn(r.v1)}</div>
+      </div>
+      <div class="rep-esc ${r.v2 === mejor ? 'rec' : ''}">
+        <div class="rep-esc-title">Escenario 02 — Modalidad 40 (${r.anyosMod40} años · SDI ${mxn(r.sdiMod40)}/día)</div>
+        <div class="rep-esc-pension">${mxn(r.e2.mensualNeta)}/mes neto</div>
+        <div class="rep-esc-desc">Costo: ${mxn(r.costoMod40)} · Mejora: +${mxn(r.e2.mensualNeta - r.e1.mensualNeta)}/mes · ROI: ${r.roiMod40.toFixed(1)} años · Vitalicio neto: ${mxn(r.v2)}</div>
+      </div>
+      <div class="rep-esc ${r.v3 === mejor ? 'rec' : ''}">
+        <div class="rep-esc-title">Escenario 03 — Retiro a los 65 años (factor completo 100%)</div>
+        <div class="rep-esc-pension">${mxn(r.e3.mensualNeta)}/mes neto</div>
+        <div class="rep-esc-desc">${r.e3.anios} años reconocidos · Vitalicio estimado: ${mxn(r.v3)}</div>
+      </div>
+    </div>
+
+    <div class="rep-section">
+      <div class="rep-section-title">Desglose del cálculo base (Art. 167 LSS 1973)</div>
+      <div class="rep-row"><div class="rep-row-label">SDI en veces UMA</div><div class="rep-row-value">${r.e1.vecesUMA} veces</div></div>
+      <div class="rep-row"><div class="rep-row-label">% Cuantía básica</div><div class="rep-row-value">${r.e1.cuantiaBasicaPct}%</div></div>
+      <div class="rep-row"><div class="rep-row-label">% Incremento anual</div><div class="rep-row-value">${r.e1.incrementoPct}%</div></div>
+      <div class="rep-row"><div class="rep-row-label">Cuantía básica anual</div><div class="rep-row-value">${mxn(r.e1.cuantiaBasicaAnual)}</div></div>
+      <div class="rep-row"><div class="rep-row-label">Total incrementos (${r.e1.anios} años)</div><div class="rep-row-value">${mxn(r.e1.totalIncrementos)}</div></div>
+      <div class="rep-row"><div class="rep-row-label">Factor edad (${r.edadRetiro} años)</div><div class="rep-row-value">${r.e1.factorEdadPct}%</div></div>
+      <div class="rep-row"><div class="rep-row-label">Pensión anual bruta total</div><div class="rep-row-value" style="color:var(--navy);font-weight:600">${mxn(r.e1.totalAnual)}</div></div>
+      <div class="rep-row"><div class="rep-row-label">ISR estimado mensual</div><div class="rep-row-value" style="color:var(--red)">−${mxn(r.e1.isr)}</div></div>
+      <div class="rep-row"><div class="rep-row-label">Pensión mensual neta</div><div class="rep-row-value" style="color:var(--navy);font-size:16px;font-weight:600">${mxn(r.e1.mensualNeta)}</div></div>
+    </div>
+
+    ${r.notas ? `<div class="rep-section"><div class="rep-section-title">Notas del expediente</div><p style="font-size:12px;color:var(--text3);line-height:1.7">${r.notas}</p></div>` : ''}
+
+    <div class="rep-section">
+      <div class="rep-section-title">Observaciones y advertencias legales</div>
+      <p style="font-size:12px;color:var(--text3);line-height:1.8">Este análisis fue generado con base en la información proporcionada y las tablas vigentes del Art. 167 de la Ley del Seguro Social de 1973. El cálculo de ISR aplica la exención de 15 UMAs diarias conforme a LISR. El cálculo definitivo y vinculante corresponde exclusivamente al IMSS al momento de la resolución del trámite. Se recomienda verificar semanas ante el IMSS y aclarar cualquier discrepancia en el historial laboral previo al inicio del trámite.</p>
+    </div>
+
+    <div class="rep-footer">
+      <div><span style="color:var(--navy);font-family:var(--mono);font-weight:600">NODUS RSP</span> · Barajas &amp; Quiñonez · Servicios Contables · Mexicali, B.C.</div>
+      <div style="font-family:var(--mono)">${hoy}</div>
+    </div>`;
+
+  goTab('reporte');
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+function descargarPDF() {
+  const r = resultados;
+  if (!r) { alert('Primero calcule los escenarios.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const hoy = new Date().toLocaleDateString('es-MX');
+  const NAVY = [27, 42, 94], WHITE = [255, 255, 255], GRAY = [122, 141, 184];
+
+  // Header
+  doc.setFillColor(...NAVY); doc.rect(0, 0, 210, 18, 'F');
+  doc.setTextColor(...WHITE); doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+  doc.text('NODUS RSP', 14, 12);
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  doc.text('Retirement Scenario Planning · Barajas & Quiñonez · Servicios Contables', 14, 17.5);
+  doc.text(hoy, 196, 12, { align: 'right' });
+
+  // Nombre
+  doc.setTextColor(15, 28, 63); doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+  doc.text(r.nombre, 14, 30);
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
+  doc.text(`NSS: ${r.nss || '—'} · ${r.totalSem.toFixed(0)} sem · SDI: $${Math.round(r.sdi)}/día · Retiro: ${r.edadRetiro} años`, 14, 36);
+
+  // Línea separadora
+  doc.setDrawColor(...NAVY); doc.setLineWidth(0.5); doc.line(14, 40, 196, 40);
+
+  let y = 48;
+  const addSec = t => {
+    doc.setFillColor(232, 237, 248); doc.rect(14, y - 4, 182, 7, 'F');
+    doc.setTextColor(...NAVY); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text(t.toUpperCase(), 16, y); y += 8;
+  };
+  const addRow = (lbl, val, bold = false) => {
+    doc.setTextColor(61, 78, 122); doc.setFontSize(9); doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(lbl, 16, y);
+    doc.setTextColor(bold ? 27 : 61, bold ? 42 : 78, bold ? 94 : 122);
+    doc.text(val, 196, y, { align: 'right' }); doc.setDrawColor(209, 217, 239);
+    doc.setLineWidth(0.2); doc.line(16, y + 2, 196, y + 2); y += 8;
+  };
+
+  addSec('Escenario 01 — Base');
+  addRow('Pensión mensual neta', mxn(r.e1.mensualNeta), true);
+  addRow('Pensión anual bruta', mxn(r.e1.totalAnual));
+  addRow('ISR mensual estimado', mxn(r.e1.isr));
+  addRow('Acumulado vitalicio', mxn(r.v1)); y += 3;
+
+  addSec('Escenario 02 — Modalidad 40');
+  addRow('Pensión mensual neta', mxn(r.e2.mensualNeta), true);
+  addRow('Costo total Mod. 40', mxn(r.costoMod40));
+  addRow('Mejora mensual neta', '+' + mxn(r.e2.mensualNeta - r.e1.mensualNeta));
+  addRow('ROI recuperación', r.roiMod40.toFixed(1) + ' años');
+  addRow('Vitalicio neto', mxn(r.v2)); y += 3;
+
+  addSec('Escenario 03 — Vejez 65 años');
+  addRow('Pensión mensual neta', mxn(r.e3.mensualNeta), true);
+  addRow('Años reconocidos', r.e3.anios.toString());
+  addRow('Acumulado vitalicio', mxn(r.v3)); y += 3;
+
+  addSec('Desglose cálculo base (Art. 167 LSS 1973)');
+  addRow('SDI en veces UMA', r.e1.vecesUMA + ' veces');
+  addRow('% Cuantía básica', r.e1.cuantiaBasicaPct + '%');
+  addRow('% Incremento anual', r.e1.incrementoPct + '%');
+  addRow('Cuantía básica anual', mxn(r.e1.cuantiaBasicaAnual));
+  addRow('Total incrementos', mxn(r.e1.totalIncrementos));
+  addRow('Factor edad (' + r.edadRetiro + ' años)', r.e1.factorEdadPct + '%');
+  addRow('Pensión anual bruta', mxn(r.e1.totalAnual), true);
+  addRow('Pensión mensual neta', mxn(r.e1.mensualNeta), true);
+
+  // Footer
+  doc.setFillColor(...NAVY); doc.rect(0, 285, 210, 12, 'F');
+  doc.setTextColor(...WHITE); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('NODUS RSP · Análisis estimativo de consultoría · No sustituye resolución oficial del IMSS', 105, 292, { align: 'center' });
+
+  doc.save(`NODUS_RSP_${r.nombre.replace(/\s+/g, '_')}_${hoy.replace(/\//g, '-')}.pdf`);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('fechaRetiro').value =
+  new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString().split('T')[0];
+activateReveals();
+</script>
+</body>
+</html>
